@@ -19,8 +19,7 @@ function main()
 
 	constraints(filePath);
 
-	generateTestCases()
-        fakeDemo()
+	generateTestCases(filePath)
 
 }
 
@@ -104,13 +103,13 @@ function coverAllConstrain(constrainted, paraId, length, newparams, tcs)
 	return;
 }
 
-function generateTestCases()
+function generateTestCases(filePath)
 {
 
-	var content = "var subject = require('./subject.js')\nvar mock = require('mock-fs');\nvar _tmp_var='0';\n";
+	var content = "var subject = require('./" + filePath +"')\nvar mock = require('mock-fs');\nvar _tmp_var='0';\n";
 	for ( var funcName in functionConstraints )
 	{
-               console.log(funcName);
+               //console.log(funcName);
 		
 		var params = {};
 		var constrainted = [];
@@ -158,7 +157,7 @@ function generateTestCases()
 		coverAllConstrain(constrainted, 0, functionConstraints[funcName].params.length, tmpc, alltc);
 		//console.log("All tc:");
 		//console.log("printing alltc\n");
-		console.log(alltc);
+		//console.log(alltc);
 		for (var tc=0 ; tc < alltc.length; tc++)
 		{
  	 		//console.log(alltc[tc]);
@@ -324,7 +323,7 @@ function constraints(filePath)
 						var val = {};
 						var name = child.argument.property.name;
 						val[name] = true;
-						console.log(val);
+						//console.log(val);
 							functionConstraints[funcName].constraints.push( 
 								new Constraint(
 								{
@@ -417,7 +416,7 @@ function constraints(filePath)
 						var expression = buf.substring(child.range[0], child.range[1]);
 						//var rightHand = buf.substring(child.left.arguments.range[0], child.left.arguments.range[1]);
 						var cType = 'string';
-						console.log(child.left.arguments[0].value);
+						//console.log(child.left.arguments[0].value);
 						var rightHand = buf.substring(child.left.arguments[0].range[0],child.left.arguments[0].range[1]);
 						functionConstraints[funcName].constraints.push(
                                                                 new Constraint(
