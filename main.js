@@ -20,6 +20,7 @@ function main()
 	constraints(filePath);
 
 	generateTestCases()
+        fakeDemo()
 
 }
 
@@ -47,7 +48,9 @@ function Constraint(properties)
 
 function fakeDemo()
 {
-	console.log( faker.phone.phoneNumber() );
+	var ph = faker.phone.phoneNumberFormat();
+	console.log(ph);
+	console.log( '123-'+'919'+'-1234');
 	console.log( faker.phone.phoneNumberFormat() );
 	console.log( faker.phone.phoneFormats() );
 }
@@ -104,7 +107,7 @@ function coverAllConstrain(constrainted, paraId, length, newparams, tcs)
 function generateTestCases()
 {
 
-	var content = "var subject = require('./subject.js')\nvar mock = require('mock-fs');\n var _tmp_var='0';\n";
+	var content = "var subject = require('./subject.js')\nvar mock = require('mock-fs');\nvar _tmp_var='0';\n";
 	for ( var funcName in functionConstraints )
 	{
                console.log(funcName);
@@ -126,8 +129,8 @@ function generateTestCases()
 		// Handle global constraints...
 		var fileWithContent = _.some(constraints, {kind: 'fileWithContent' });
 		var pathExists      = _.some(constraints, {kind: 'fileExists' });
-		var fileExist = true;
-
+		var dirExist = true;
+		var fileWithoutContent = true;
 		// plug-in values for parameters
 		for( var c = 0; c < constraints.length; c++ )
 		{
@@ -173,7 +176,14 @@ function generateTestCases()
 				   //console.log(constraint);
 				   if(constraint.kind == 'phoneNumber')
 				   {
-					params[constraint.ident] = '\'' + faker.phone.phoneNumber()+'\'';
+					if(constraint.operator == 'substring')
+					{
+						params[constraint.ident] = '\'' +constraint.value+'9855489\'';
+					}
+					else
+					{
+					 	params[constraint.ident] = '\'' + faker.phone.phoneNumber()+'\'';
+					}
 				   }
 				   else
 				   { 
@@ -185,7 +195,7 @@ function generateTestCases()
 			//console.log(params);
 			var args = Object.keys(params).map( function(k) {return params[k]; }).join(",");
   			//console.log(args);
-			if( 0)
+			if( 0 && (pathExists || fileWithContent))
 			{
 				content += generateMockFsTestCases(pathExists,!fileExist, fileWithContent,funcName, args);
 				// Bonus...generate constraint variations test cases
@@ -203,12 +213,13 @@ function generateTestCases()
 		var args = Object.keys(params).map( function(k) {return params[k]; }).join(",");
 		if( pathExists || fileWithContent )
 		{
-			content += generateMockFsTestCases(pathExists,!fileExist, fileWithContent,funcName, args);
+			content += generateMockFsTestCases(pathExists, dirExist, fileWithContent, fileWithoutContent, funcName, args);
 			// Bonus...generate constraint variations test cases
-			content += generateMockFsTestCases(pathExists, fileExist, fileWithContent, funcName, args);
-			content += generateMockFsTestCases(!pathExists,!fileExist, fileWithContent,funcName, args);
-			content += generateMockFsTestCases(pathExists,!fileExist, !fileWithContent,funcName, args);
-			content += generateMockFsTestCases(!pathExists,!fileExist, !fileWithContent,funcName, args);
+			content += generateMockFsTestCases(pathExists, dirExist, fileWithContent, !fileWithoutContent, funcName, args);
+			content += generateMockFsTestCases(pathExists, !dirExist, fileWithContent, fileWithoutContent, funcName, args);
+			content += generateMockFsTestCases(!pathExists, !dirExist, fileWithContent, !fileWithoutContent, funcName, args);
+			content += generateMockFsTestCases(pathExists, dirExist, !fileWithContent, false, funcName, args);
+			content += generateMockFsTestCases(!pathExists, !dirExist, !fileWithContent,false, funcName, args);
 		}
 		else
 		{
@@ -222,7 +233,7 @@ function generateTestCases()
 
 }
 
-function generateMockFsTestCases (pathExists, fileExists, fileWithContent,funcName,args) 
+function generateMockFsTestCases (pathExists, fileExists, fileWithContent, fileWithoutContent, funcName,args) 
 {
 	var testCase = "";
 	// Build mock file system based on constraints.
@@ -238,6 +249,10 @@ function generateMockFsTestCases (pathExists, fileExists, fileWithContent,funcNa
 	if( fileWithContent )
 	{
 		for (var attrname in mockFileLibrary.fileWithContent) { mergedFS[attrname] = mockFileLibrary.fileWithContent[attrname]; }
+		if(fileWithoutContent)
+		{
+			mergedFS[attrname] = {'file1':''};
+		}
 	}
 
 	testCase += 
@@ -324,6 +339,21 @@ function constraints(filePath)
 				}
 				if( child.type === 'BinaryExpression')
 				{
+					if(child.left.type == 'Identifier' && child.operator == "==" && params.indexOf(child.left.name) <= 0 && params.indexOf("phoneNumber") > -1)
+					{
+						// must be area
+						var rightHand = buf.substring(child.right.range[0], child.right.range[1])
+						functionConstraints[funcName].constraints.push( 
+							new Constraint(
+							{
+								ident: 'phoneNumber',
+								value: child.right.value,
+								funcName: funcName,
+								kind: 'phoneNumber',
+								operator : 'substring',
+								expression:''
+							}));
+					}
 					if( child.left.type == 'Identifier' && params.indexOf( child.left.name ) > -1)
 					{
 						// get expression from original source code:
