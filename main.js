@@ -281,20 +281,6 @@ function constraints(filePath)
 
 			functionConstraints[funcName] = {constraints:[], params: params};
 
-			if(params.indexOf("phoneNumber") >-1)
-			{
-			// add phone number constraint
-				functionConstraints[funcName].constraints.push( 
-					new Constraint(
-					{
-						ident: "phoneNumber",
-						value: '',
-						funcName: funcName,
-						kind: 'phoneNumber',
-						operator : '',
-						expression: ''
-					}));
-			}
 			// Check for expressions using argument.
 			traverse(node, function(child)
 			{
@@ -338,18 +324,38 @@ function constraints(filePath)
 				}
 				if( child.type === 'BinaryExpression')
 				{
-					if(child.left.type == 'Identifier' && child.operator == "==" && params.indexOf(child.left.name) <= 0 && params.indexOf("phoneNumber") > -1)
+					if(child.left.type == 'Identifier' && child.operator == "==" && params.indexOf(child.left.name) <= 0 )
 					{
 						// must be area
 						var rightHand = buf.substring(child.right.range[0], child.right.range[1])
+						var constraintArray = functionConstraints[funcName].constraints;
+						var identifier= 'phoneNumber';
+						for (var i=0; i < constraintArray.length; i++)
+						{
+							if (constraintArray[i].kind == 'phoneNumber')
+							{
+								identifier = constraintArray[i].ident;
+								break;
+							}
+						}
 						functionConstraints[funcName].constraints.push( 
 							new Constraint(
 							{
-								ident: 'phoneNumber',
+								ident: identifier,
 								value: child.right.value,
 								funcName: funcName,
 								kind: 'phoneNumber',
 								operator : 'substring',
+								expression:''
+							}));
+						functionConstraints[funcName].constraints.push( 
+							new Constraint(
+							{
+								ident: identifier,
+								value: child.right.value,
+								funcName: funcName,
+								kind: 'phoneNumber',
+								operator : 'string',
 								expression:''
 							}));
 					}
@@ -474,6 +480,21 @@ function constraints(filePath)
 							}));
 						}
 					}
+				}
+				if( child.type == "CallExpression" &&
+					child.callee.name  == "format")
+				{
+					functionConstraints[funcName].constraints.push(
+					new Constraint(
+					{
+						ident: child.arguments[0].name,
+						value: 'fake',
+						funcName: funcName,
+						kind: 'phoneNumber',
+						operator : 'string',
+						expression:''
+					}));
+		
 				}
 
 			});
